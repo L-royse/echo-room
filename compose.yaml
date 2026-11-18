@@ -1,0 +1,44 @@
+name: echo-room
+services:
+  app:
+    image: echo-room:local
+    build: .
+    network_mode: host
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      HOST: 127.0.0.1
+      PORT: 3000
+      DATA_DIR: /data
+    volumes:
+      - echo-data:/data
+    restart: unless-stopped
+    init: true
+    mem_limit: 420m
+    pids_limit: 96
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: '2'
+  caddy:
+    image: caddy:2-alpine
+    network_mode: host
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?Run setup.sh first}
+      ACME_EMAIL: ${ACME_EMAIL:?Run setup.sh first}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+    mem_limit: 100m
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: '2'
+volumes:
+  echo-data:
+  caddy-data:
+  caddy-config:

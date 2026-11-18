@@ -1,0 +1,14 @@
+import { mkdir, cp, readFile, readdir, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+const { version } = JSON.parse(await readFile('package.json', 'utf8'));
+const folder = `artifacts/echo-room-${version}`;
+await mkdir(folder, { recursive: true });
+const entries = ['server', 'web', 'dist', 'scripts', 'test', 'deploy', '.github', 'package.json', 'package-lock.json', 'Dockerfile', 'compose.yaml', 'setup.sh', '.env.example', '.gitignore', '.dockerignore', 'README.md', 'DEPLOY.md', 'DESIGN.md', 'TEST-REPORT.md', 'LICENSE'];
+for (const file of entries) await cp(file, `${folder}/${file}`, { recursive: true });
+const archive = `artifacts/echo-room-${version}.tar.gz`;
+const result = spawnSync('tar', ['-czf', archive, '-C', 'artifacts', `echo-room-${version}`], { stdio: 'inherit' });
+if (result.status !== 0) throw Error('tar 打包失败');
+const hash = createHash('sha256').update(await readFile(archive)).digest('hex');
+await writeFile(`${archive}.sha256`, `${hash}  echo-room-${version}.tar.gz\n`);
+console.log(`已生成 ${archive}，包含预构建 dist，不含账号数据、.env 和 node_modules。`);

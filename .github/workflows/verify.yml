@@ -1,0 +1,30 @@
+name: Verify and package
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+      - run: cp deploy/ci.env .env && docker compose --env-file deploy/ci.env config --quiet
+      - run: docker build -t echo-room:test .
+      - run: npm run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: echo-room-deploy
+          path: artifacts/echo-room-*.tar.gz
+          retention-days: 14
